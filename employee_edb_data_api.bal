@@ -10,11 +10,27 @@ configurable boolean allowImpersonation = false;
 configurable boolean isDebugEnabled = false;
 configurable boolean enableGraphiql = false;
 
-public function main() returns error? {
-    database:OracleDBConfig _ = {host: "", user: "", password: "", database: "", port: 0};
-    string _ = integrations:getBaseUrl();
+service / on new http:Listener(8080) {
+    resource function get .() returns json {
+        log:printInfo("GET / - returning config");
+        sql:ParameterizedQuery _ = `SELECT 1`;
+        map<anydata> configMap = {
+            "graphqlListenerTimeout": graphqlListenerTimeout,
+            "allowImpersonation": allowImpersonation,
+            "isDebugEnabled": isDebugEnabled,
+            "enableGraphiql": enableGraphiql
+        };
 
-    http:Client _ = check new ("https://example.com");
-    log:printInfo("Hello");
-    sql:ParameterizedQuery _ = `SELECT 1`;
+        map<anydata> integrationsConfig = integrations:getConfig();
+        foreach [string, anydata] [k, v] in integrationsConfig.entries() {
+            configMap["integrations." + k] = v;
+        }
+
+        map<anydata> dbConfig = database:getConfig();
+        foreach [string, anydata] [k, v] in dbConfig.entries() {
+            configMap["database." + k] = v;
+        }
+
+        return configMap.toJson();
+    }
 }
