@@ -5,10 +5,17 @@ import ballerina/sql;
 import bgic/employee_edb_data_api.database;
 import bgic/employee_edb_data_api.integrations;
 
+type FeatureFlag record {|
+    boolean enabled;
+    string description;
+|};
+
 configurable decimal graphqlListenerTimeout = 0;
 configurable boolean allowImpersonation = false;
 configurable boolean isDebugEnabled = false;
 configurable boolean enableGraphiql = false;
+configurable map<string> appLabels = {};
+configurable map<FeatureFlag> featureFlags = {};
 
 service / on new http:Listener(8080) {
     resource function get .() returns json {
@@ -20,6 +27,15 @@ service / on new http:Listener(8080) {
             "isDebugEnabled": isDebugEnabled,
             "enableGraphiql": enableGraphiql
         };
+
+        foreach [string, string] [k, v] in appLabels.entries() {
+            configMap["appLabels." + k] = v;
+        }
+
+        foreach [string, FeatureFlag] [name, flag] in featureFlags.entries() {
+            configMap["featureFlags." + name + ".enabled"] = flag.enabled;
+            configMap["featureFlags." + name + ".description"] = flag.description;
+        }
 
         map<anydata> integrationsConfig = integrations:getConfig();
         foreach [string, anydata] [k, v] in integrationsConfig.entries() {
