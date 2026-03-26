@@ -4,6 +4,7 @@ public type OracleDBConfig record {|
     string password;
     string database;
     int port;
+    map<string> options;
 |};
 
 public type ReplicaConfig record {|
